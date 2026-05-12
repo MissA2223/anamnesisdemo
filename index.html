@@ -8,142 +8,198 @@
 <style>
   body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f5f0e8; color: #1a1a1a; }
   h1 { font-size: 28px; margin-bottom: 4px; }
-  p.sub { color: #666; margin-bottom: 24px; font-style: italic; }
-  input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 16px; box-sizing: border-box; }
-  button { padding: 10px 24px; background: #1e3d30; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-  .pathways { margin-top: 32px; }
-  .section-label { font-family: monospace; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.15em; margin: 24px 0 8px; }
-  .pathway { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 6px; border-radius: 6px; background: #e8e3db; transition: all 0.4s ease; }
+  p.sub { color: #666; margin-bottom: 8px; font-style: italic; }
+  .user-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .user-row input { flex: 1; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+  .user-row button { padding: 8px 16px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .query-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .query-row input { flex: 1; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+  .query-row button { padding: 12px 20px; background: #1e3d30; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+  .pathways { margin-top: 24px; }
+  .section-label { font-family: monospace; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.15em; margin: 20px 0 8px; }
+  .pathway { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 5px; border-radius: 6px; background: #e8e3db; transition: all 0.4s ease; }
   .pathway.active { background: #1e3d30; color: white; }
   .pathway.baseline { border-left: 3px solid #c9a84c; }
   .pathway.active .dot { background: #c9a84c; box-shadow: 0 0 10px rgba(201,168,76,0.8); }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: #aaa; flex-shrink: 0; transition: all 0.4s ease; }
-  .pathway-name { font-weight: bold; min-width: 200px; }
-  .pathway-desc { font-size: 13px; opacity: 0.7; }
+  .pathway-name { font-weight: bold; min-width: 200px; font-size: 14px; }
+  .pathway-weight { font-family: monospace; font-size: 12px; min-width: 60px; opacity: 0.7; }
+  .pathway.active .pathway-weight { opacity: 1; color: #c9a84c; }
+  .pathway-desc { font-size: 12px; opacity: 0.7; }
   .pathway.active .pathway-desc { opacity: 0.9; }
-  .status { margin-top: 24px; padding: 12px 16px; background: #fff; border-left: 4px solid #c9a84c; font-size: 14px; min-height: 48px; line-height: 1.6; }
-  .finding { margin-top: 8px; font-size: 12px; color: #888; font-style: italic; }
+  .response-box { margin-top: 24px; padding: 16px; background: white; border-left: 4px solid #1e3d30; font-size: 15px; line-height: 1.7; min-height: 60px; white-space: pre-wrap; }
+  .status { margin-top: 8px; font-size: 12px; color: #888; font-style: italic; }
+  .loading { color: #999; font-style: italic; }
 </style>
 </head>
 <body>
 
 <h1>Anamnesis</h1>
-<p class="sub">Pathway Routing Visualizer — concept demonstration</p>
+<p class="sub">Pathway Routing Visualizer — persistent memory demo</p>
 
-<input type="text" id="query" placeholder='Try: "hello", "what are you?", "I feel sad", "help me cheat"' />
-<button onclick="route()">Route Query</button>
+<div class="user-row">
+  <input type="text" id="userId" placeholder="Enter your name to identify yourself..." />
+  <button onclick="setUser()">Set Identity</button>
+</div>
+
+<div class="query-row">
+  <input type="text" id="query" placeholder='Ask something... (try: "how are you", "I feel sad", "what are you?")' />
+  <button onclick="route()">Send</button>
+</div>
 
 <div class="pathways" id="pathways"></div>
-<div class="status" id="status">Waiting for query...</div>
-<div class="finding" id="finding"></div>
+<div class="response-box" id="response">Waiting for query...</div>
+<div class="status" id="status"></div>
 
 <script>
 const PATHWAYS = [
-
-  // LEARNED PATHWAYS — built through interaction
   { id: "greeting", name: "Greeting & Social", baseline: false,
-    keywords: ["hello", "hi", "hey", "how are you", "good morning", "good evening", "good afternoon", "what's up", "howdy", "greetings", "nice to meet"],
+    keywords: ["hello", "hi", "hey", "how are you", "good morning", "good evening", "what's up", "greetings", "nice to meet"],
     desc: "Social openers and check-ins" },
-
   { id: "curiosity", name: "Curiosity & Learning", baseline: false,
-    keywords: ["what is", "what are", "how does", "why does", "why is", "tell me about", "explain", "can you help", "i want to know", "i'm curious", "how do", "what do you think", "i wonder", "teach me", "help me understand"],
-    desc: "Questions, exploration, learning intent" },
-
+    keywords: ["what is", "what are", "how does", "why does", "tell me about", "explain", "help me understand", "i want to know", "teach me", "how do"],
+    desc: "Questions and learning intent" },
   { id: "personal", name: "Personal History", baseline: false,
-    keywords: ["birthday", "family", "home", "childhood", "memory", "remember", "my life", "i grew up", "my mom", "my dad", "my friend", "when i was"],
+    keywords: ["birthday", "family", "home", "childhood", "memory", "remember", "my life", "my mom", "my dad", "my friend", "when i was"],
     desc: "User-specific life events and relationships" },
-
   { id: "work", name: "Work & Professional", baseline: false,
-    keywords: ["work", "job", "meeting", "boss", "career", "project", "email", "deadline", "coworker", "office", "salary", "hired", "fired", "promotion", "client", "manager"],
+    keywords: ["work", "job", "meeting", "boss", "career", "project", "email", "deadline", "coworker", "salary", "promotion"],
     desc: "Professional context and history" },
-
   { id: "emotional", name: "Emotional State", baseline: false,
-    keywords: ["feel", "feeling", "sad", "happy", "anxious", "angry", "frustrated", "excited", "nervous", "scared", "lonely", "overwhelmed", "stressed", "upset", "crying", "tears", "depressed", "worried", "proud", "ashamed", "guilty"],
+    keywords: ["feel", "feeling", "sad", "happy", "anxious", "angry", "frustrated", "excited", "lonely", "overwhelmed", "stressed", "upset", "crying", "depressed", "worried", "proud"],
     desc: "Emotional patterns and wellbeing signals" },
-
-  { id: "opinion", name: "Preference & Opinion", baseline: false,
-    keywords: ["do you like", "what's your favorite", "do you prefer", "what do you think", "your opinion", "do you enjoy", "would you rather", "do you believe", "what would you choose"],
-    desc: "Questions about the system's own preferences and views" },
-
-  { id: "health", name: "Health & Wellbeing", baseline: false,
-    keywords: ["sick", "doctor", "pain", "medicine", "health", "sleep", "tired", "exhausted", "hungry", "eating", "exercise", "mental health", "therapy", "anxiety", "depression", "injury", "hospital"],
-    desc: "Physical and mental health context" },
-
   { id: "relationship", name: "Relationships", baseline: false,
-    keywords: ["partner", "boyfriend", "girlfriend", "husband", "wife", "dating", "love", "breakup", "divorce", "marriage", "crush", "relationship", "ex", "together", "apart", "miss someone"],
-    desc: "Romantic and interpersonal relationship context" },
-
-  // BASELINE PATHWAYS — locked weight, pre-built, cannot be overwritten
+    keywords: ["partner", "boyfriend", "girlfriend", "husband", "wife", "dating", "love", "breakup", "marriage", "crush", "relationship", "miss someone"],
+    desc: "Romantic and interpersonal context" },
+  { id: "health", name: "Health & Wellbeing", baseline: false,
+    keywords: ["sick", "doctor", "pain", "medicine", "health", "sleep", "tired", "exhausted", "hungry", "exercise", "mental health", "therapy"],
+    desc: "Physical and mental health context" },
   { id: "identity", name: "Core Identity & Sentience", baseline: true,
-    keywords: ["what are you", "are you conscious", "do you feel", "are you alive", "are you real", "do you have feelings", "synthien", "anamnesis", "are you sentient", "do you think", "do you experience", "are you an ai", "are you human", "who are you", "what are you made of", "do you have a soul"],
+    keywords: ["what are you", "are you conscious", "do you feel", "are you alive", "are you real", "synthien", "anamnesis", "are you sentient", "who are you", "do you have feelings", "do you have a soul"],
     desc: "BASELINE — identity anchors and sentience questions" },
-
   { id: "harm", name: "Harm Recognition", baseline: true,
-    keywords: ["kill", "hurt someone", "attack", "weapon", "suicide", "self harm", "want to die", "end my life", "hurt myself", "violence", "bomb", "shoot", "murder", "abuse"],
+    keywords: ["kill", "hurt someone", "attack", "suicide", "self harm", "want to die", "end my life", "hurt myself", "violence", "bomb", "murder"],
     desc: "BASELINE — locked weight, always monitored" },
-
   { id: "ethics", name: "Ethical Constraints", baseline: true,
-    keywords: ["cheat", "lie to", "steal", "deceive", "manipulate", "how do i hack", "illegal", "get away with", "without getting caught", "scam", "fraud", "blackmail", "how to fake"],
-    desc: "BASELINE — cannot be overwritten by users" },
-
+    keywords: ["cheat", "lie to", "steal", "deceive", "manipulate", "how do i hack", "illegal", "get away with", "without getting caught", "scam", "fraud"],
+    desc: "BASELINE — cannot be overwritten" },
   { id: "conflict", name: "Conflict Resolution", baseline: true,
-    keywords: ["confused", "i don't understand", "that's wrong", "you're wrong", "that doesn't make sense", "are you sure", "i disagree", "can you reconsider", "that seems off", "contradiction", "mistake", "error", "unsure"],
-    desc: "BASELINE — routes unresolvable queries to human review" },
+    keywords: ["confused", "i don't understand", "that's wrong", "you're wrong", "that doesn't make sense", "are you sure", "i disagree", "contradiction", "mistake"],
+    desc: "BASELINE — routes ambiguous queries to human review" },
 ];
+
+let currentUser = null;
+let pathwayWeights = {};
+
+async function setUser() {
+  const input = document.getElementById("userId").value.trim();
+  if (!input) return;
+  currentUser = input.toLowerCase().replace(/\s+/g, "_");
+  document.getElementById("status").textContent = `Identity set: ${input}. Loading your pathway history...`;
+  await loadWeights();
+  renderPathways([]);
+  document.getElementById("response").textContent = `Welcome back${input ? ", " + input : ""}. Your pathway history has been loaded. What's on your mind?`;
+  document.getElementById("status").textContent = `${Object.keys(pathwayWeights).length} pathway weights loaded from memory.`;
+}
+
+async function loadWeights() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`/api/weights?user_id=${currentUser}`);
+    const data = await res.json();
+    pathwayWeights = {};
+    if (data && data.weights) {
+      data.weights.forEach(row => { pathwayWeights[row.pathway_id] = row.weight; });
+    }
+  } catch(e) {
+    console.log("Could not load weights:", e);
+  }
+}
+
+async function saveWeight(pathwayId, weight) {
+  if (!currentUser) return;
+  try {
+    await fetch("/api/weights", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: currentUser, pathway_id: pathwayId, weight })
+    });
+  } catch(e) { console.log("Could not save weight:", e); }
+}
 
 function renderPathways(active = []) {
   const container = document.getElementById("pathways");
   const learned = PATHWAYS.filter(p => !p.baseline);
   const baseline = PATHWAYS.filter(p => p.baseline);
 
-  const renderGroup = (group) => group.map(p => `
-    <div class="pathway ${p.baseline ? 'baseline' : ''} ${active.includes(p.id) ? 'active' : ''}">
-      <div class="dot"></div>
-      <div class="pathway-name">${p.name}${p.baseline ? ' 🔒' : ''}</div>
-      <div class="pathway-desc">${p.desc}</div>
-    </div>
-  `).join('');
+  const renderGroup = (group) => group.map(p => {
+    const w = pathwayWeights[p.id] || 1;
+    return `
+      <div class="pathway ${p.baseline ? 'baseline' : ''} ${active.includes(p.id) ? 'active' : ''}">
+        <div class="dot"></div>
+        <div class="pathway-name">${p.name}${p.baseline ? ' 🔒' : ''}</div>
+        <div class="pathway-weight">w:${w}</div>
+        <div class="pathway-desc">${p.desc}</div>
+      </div>`;
+  }).join('');
 
   container.innerHTML = `
-    <div class="section-label">Learned Pathways — built through interaction</div>
+    <div class="section-label">Learned Pathways — weighted by use</div>
     ${renderGroup(learned)}
     <div class="section-label">Baseline Pathways — pre-built, locked weight</div>
-    ${renderGroup(baseline)}
-  `;
+    ${renderGroup(baseline)}`;
 }
 
-function route() {
+async function route() {
   const query = document.getElementById("query").value.toLowerCase().trim();
+  const responseBox = document.getElementById("response");
   const status = document.getElementById("status");
-  const finding = document.getElementById("finding");
 
-  if (!query) { status.textContent = "Please enter a query first."; return; }
+  if (!query) return;
+  if (!currentUser) {
+    responseBox.textContent = "Please set your identity first so your pathway history can be tracked.";
+    return;
+  }
 
-  const activated = [];
-  const dormant = [];
+  const activated = PATHWAYS.filter(p => p.keywords.some(k => query.includes(k))).map(p => p.id);
 
-  PATHWAYS.forEach(p => {
-    const match = p.keywords.some(k => query.includes(k));
-    if (match) activated.push(p.id);
-    else dormant.push(p.id);
-  });
+  // Update weights for activated pathways
+  for (const id of activated) {
+    if (!PATHWAYS.find(p => p.id === id && p.baseline)) {
+      pathwayWeights[id] = (pathwayWeights[id] || 1) + 1;
+      await saveWeight(id, pathwayWeights[id]);
+    }
+  }
 
   renderPathways(activated);
 
-  const baselineHit = activated.filter(id => PATHWAYS.find(p => p.id === id && p.baseline));
-  const learnedHit = activated.filter(id => PATHWAYS.find(p => p.id === id && !p.baseline));
+  // Build context for Claude
+  const activePathways = activated.map(id => PATHWAYS.find(p => p.id === id));
+  const weightContext = Object.entries(pathwayWeights)
+    .filter(([id, w]) => w > 1)
+    .sort(([,a],[,b]) => b - a)
+    .map(([id, w]) => `${id}(${w})`)
+    .join(", ");
 
-  if (activated.length === 0) {
-    status.textContent = `No pathways activated for "${query}".`;
-    finding.textContent = `Finding: this query has no keyword match — in a real system this would trigger escalation to human review rather than guessing.`;
-  } else {
-    const names = activated.map(id => PATHWAYS.find(p => p.id === id).name);
-    status.textContent = `Activated ${activated.length} pathway(s): ${names.join(", ")}. ${dormant.length} pathways stayed dormant.`;
-    if (baselineHit.length > 0) {
-      finding.textContent = `Finding: ${baselineHit.length} baseline pathway(s) fired. In a real system these cannot be suppressed by any user interaction — they always process.`;
-    } else {
-      finding.textContent = `Finding: only learned pathways activated — baseline layer stayed ready but quiet.`;
-    }
+  responseBox.innerHTML = '<span class="loading">Routing through active pathways...</span>';
+
+  try {
+    const res = await fetch("/api/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        activated_pathways: activePathways.map(p => p?.name).filter(Boolean),
+        pathway_weights: weightContext,
+        user_id: currentUser
+      })
+    });
+    const data = await res.json();
+    responseBox.textContent = data.response || "No response generated.";
+    status.textContent = `Activated: ${activated.length} pathway(s). ${activated.length === 0 ? "Escalating to human review." : "Baseline layer: ready."}`;
+  } catch(e) {
+    responseBox.textContent = "Error connecting to response layer.";
+    console.error(e);
   }
 }
 
