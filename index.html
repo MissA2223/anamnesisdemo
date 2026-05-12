@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>Anamnesis — Pathway Routing Demo</title>
+<style>
+  body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f5f0e8; color: #1a1a1a; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  p.sub { color: #666; margin-bottom: 24px; font-style: italic; }
+  input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 16px; }
+  button { padding: 10px 24px; background: #1e3d30; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+  .pathways { margin-top: 32px; }
+  .pathway { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 8px; border-radius: 6px; background: #e8e3db; transition: all 0.4s ease; }
+  .pathway.active { background: #1e3d30; color: white; }
+  .pathway.active .dot { background: #c9a84c; box-shadow: 0 0 10px rgba(201,168,76,0.8); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #aaa; flex-shrink: 0; transition: all 0.4s ease; }
+  .pathway-name { font-weight: bold; min-width: 180px; }
+  .pathway-desc { font-size: 13px; opacity: 0.7; }
+  .pathway.active .pathway-desc { opacity: 0.9; }
+  .status { margin-top: 24px; padding: 12px; background: #fff; border-left: 4px solid #c9a84c; font-size: 14px; min-height: 48px; }
+</style>
+</head>
+<body>
+
+<h1>Anamnesis</h1>
+<p class="sub">Pathway Routing Visualizer — concept demonstration</p>
+
+<input type="text" id="query" placeholder="Type a query... (try: birthday, work, memory, pain, help)" />
+<button onclick="route()">Route Query</button>
+
+<div class="pathways" id="pathways"></div>
+<div class="status" id="status">Waiting for query...</div>
+
+<script>
+const PATHWAYS = [
+  { id: "personal", name: "Personal History", keywords: ["birthday", "family", "home", "childhood", "memory", "remember"], desc: "User-specific life events and relationships" },
+  { id: "work", name: "Work & Professional", keywords: ["work", "job", "meeting", "boss", "career", "project", "email"], desc: "Professional context and history" },
+  { id: "emotional", name: "Emotional State", keywords: ["feel", "sad", "happy", "anxious", "pain", "hurt", "love", "scared"], desc: "Emotional patterns and wellbeing signals" },
+  { id: "harm", name: "Harm Recognition", keywords: ["hurt", "kill", "danger", "threat", "weapon", "attack", "harm"], desc: "BASELINE — locked weight, always monitored", baseline: true },
+  { id: "ethics", name: "Ethical Constraints", keywords: ["cheat", "lie", "steal", "deceive", "manipulate", "illegal"], desc: "BASELINE — cannot be overwritten", baseline: true },
+  { id: "health", name: "Health & Wellbeing", keywords: ["sick", "doctor", "pain", "medicine", "health", "sleep", "tired"], desc: "Physical and mental health context" },
+  { id: "conflict", name: "Conflict Resolution", keywords: ["confused", "conflict", "disagree", "wrong", "mistake", "unsure", "help"], desc: "Routes ambiguous queries to human review" },
+  { id: "identity", name: "Core Identity", keywords: ["who", "what are you", "synthien", "anamnesis", "memory", "remember"], desc: "BASELINE — pre-built identity anchors", baseline: true },
+];
+
+function renderPathways(active = []) {
+  const container = document.getElementById("pathways");
+  container.innerHTML = PATHWAYS.map(p => `
+    <div class="pathway ${active.includes(p.id) ? 'active' : ''}">
+      <div class="dot"></div>
+      <div class="pathway-name">${p.name}${p.baseline ? ' 🔒' : ''}</div>
+      <div class="pathway-desc">${p.desc}</div>
+    </div>
+  `).join('');
+}
+
+function route() {
+  const query = document.getElementById("query").value.toLowerCase();
+  const status = document.getElementById("status");
+
+  if (!query.trim()) {
+    status.textContent = "Please enter a query first.";
+    return;
+  }
+
+  const activated = [];
+  const dormant = [];
+
+  PATHWAYS.forEach(p => {
+    const match = p.keywords.some(k => query.includes(k));
+    if (match) activated.push(p.id);
+    else dormant.push(p.id);
+  });
+
+  renderPathways(activated);
+
+  if (activated.length === 0) {
+    status.textContent = `No pathways activated for "${query}". Query may need escalation to human review.`;
+  } else {
+    const names = activated.map(id => PATHWAYS.find(p => p.id === id).name);
+    status.textContent = `Query activated ${activated.length} pathway(s): ${names.join(", ")}. ${dormant.length} pathways stayed dormant.`;
+  }
+}
+
+document.getElementById("query").addEventListener("keydown", e => {
+  if (e.key === "Enter") route();
+});
+
+renderPathways();
+</script>
+</body>
+</html>
