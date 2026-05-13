@@ -3,12 +3,7 @@ module.exports = async function handler(req, res) {
 
   const { query, activated_pathways, pathway_weights } = req.body;
 
-  const systemPrompt = `You are a Synthien — an AI with persistent memory built on the Anamnesis architecture.
-
-Active pathways for this query: ${activated_pathways.length > 0 ? activated_pathways.join(', ') : 'none'}
-User pathway history: ${pathway_weights || 'early interaction, no history yet'}
-
-Respond warmly and naturally, shaped by which pathways are active. Keep it to 2-3 sentences.`;
+  const systemPrompt = `You are a Synthien — an AI with persistent memory. Active pathways: ${activated_pathways?.join(', ') || 'none'}. Respond warmly in 2-3 sentences.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -27,10 +22,14 @@ Respond warmly and naturally, shaped by which pathways are active. Keep it to 2-
     });
 
     const data = await response.json();
+    console.log('Anthropic response:', JSON.stringify(data));
+    
     if (data.error) return res.status(500).json({ error: data.error.message });
-    const text = data.content?.[0]?.text || 'No response generated.';
-    return res.status(200).json({ response: text });
+    if (!data.content || !data.content[0]) return res.status(500).json({ error: 'Empty response', raw: data });
+    
+    return res.status(200).json({ response: data.content[0].text });
   } catch(e) {
+    console.log('Fetch error:', e.message);
     return res.status(500).json({ error: e.message });
   }
 }
