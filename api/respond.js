@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+       model: 'claude-sonnet-4-6',
         max_tokens: 300,
         system: `You are a Synthien — an AI with persistent memory. Active pathways: ${activated_pathways?.join(', ') || 'none'}. Respond warmly in 2-3 sentences.`,
         messages: [{ role: 'user', content: query }]
